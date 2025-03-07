@@ -9,7 +9,7 @@ from transformers import AutoConfig, GPT2LMHeadModel, Trainer, TrainingArguments
 from transformers import PreTrainedTokenizer
 from datasets import load_dataset
 
-# 设置环境变量（如果需要）
+# Set environment variables if needed
 result = subprocess.run('bash -c "source /etc/network_turbo && env | grep proxy"', shell=True, capture_output=True, text=True)
 output = result.stdout
 for line in output.splitlines():
@@ -77,13 +77,17 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
             return {"input_ids": torch.tensor(tokens if isinstance(text, list) else [tokens])}
         return {"input_ids": tokens if isinstance(text, list) else [tokens]}
 
-# 路径和超参数
-model_path = '/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/BPE/bpe_sentence/Pig_sen_bpe.model'
-data_path = "/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/fasta_data/window1000_pig_genome.txt"
-run_path = "gpt2_run"
-max_length = 256
-train_epochs = 15
-batch_size = 10
+# Initialize argument parser
+parser = argparse.ArgumentParser(description='GPT-2 Model Training Configuration')
+parser.add_argument('--model_path', type=str, required=True, help='Path to SentencePiece model')
+parser.add_argument('--data_path', type=str, required=True, help='Path to training data')
+parser.add_argument('--config_path', type=str, default='config.json', help='Path to model config file')
+parser.add_argument('--run_path', type=str, default='gpt2_run', help='Output directory for training results')
+parser.add_argument('--output_dir', type=str, default='pig_gpt2_models', help='Final model output directory')
+parser.add_argument('--max_length', type=int, default=256, help='Maximum sequence length')
+parser.add_argument('--train_epochs', type=int, default=15, help='Number of training epochs')
+parser.add_argument('--batch_size', type=int, default=10, help='Training batch size')
+args = parser.parse_args()
 
 # 初始化分词器
 tokenizer = SentencePieceTokenizer(model_path=model_path)
@@ -91,14 +95,16 @@ tokenizer.pad_token = tokenizer.eos_token
 
 # 保存词汇表和合并文件（如果尚未保存）
 vocab = {tokenizer.sp.id_to_piece(i): i for i in range(tokenizer.vocab_size)}
-with open("vocab.json", "w", encoding="utf-8") as f:
+vocab_file = os.path.join(args.run_path, "vocab.json")
+merge_file = os.path.join(args.run_path, "merges.txt")
+with open(vocab_file, "w", encoding="utf-8") as f:
     json.dump(vocab, f, ensure_ascii=False)
-with open("merges.txt", "w", encoding="utf-8") as f:
+with open(merge_file, "w", encoding="utf-8") as f:
     f.write("# Empty merges file\n")
 
 # 加载模型配置
 config = AutoConfig.from_pretrained(
-    "./config.json",
+    args.config_path,
     vocab_size=len(tokenizer),
     n_ctx=max_length,
     bos_token_id=tokenizer.bos_token_id,
@@ -149,7 +155,7 @@ else:
     trainer.train()
 
 # 保存最终模型
-trainer.save_model("pig_gpt2_v0")
+trainer.save_model(args.output_dir)
 
 # 评估模型
 eval_results = trainer.evaluate()

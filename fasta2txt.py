@@ -1,47 +1,81 @@
+#!/usr/bin/env python
+"""
+FASTA to TXT Converter for Pig Genome
+
+This script converts pig genome FASTA files to a single text file,
+removing non-ATCG characters and concatenating all chromosomes.
+
+Usage:
+    python fasta2txt.py --input_dir /path/to/fasta/files --output_file /path/to/output.txt
+"""
+
 import os
-from Bio import SeqIO
 import re
+import argparse
+from Bio import SeqIO
 
-# 设置FASTA文件所在的文件夹路径
-# fasta_dir = "/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/fasta_data"
-fasta_dir = "/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/Piggenome"
+# Parse command line arguments
+def parse_args():
+    """Parse command line arguments for the FASTA to TXT converter.
+    
+    Returns:
+        argparse.Namespace: Parsed command line arguments
+    """
+    parser = argparse.ArgumentParser(description='Convert pig genome FASTA files to a single text file')
+    parser.add_argument('--input_dir', type=str, default='./data/fasta',
+                        help='Directory containing FASTA files')
+    parser.add_argument('--output_file', type=str, default='./data/processed/pig_genome.txt',
+                        help='Output text file path')
+    parser.add_argument('--genome_build', type=str, default='Sus_scrofa.Sscrofa11.1.dna.primary_assembly',
+                        help='Genome build prefix for FASTA files')
+    return parser.parse_args()
 
-# 定义染色体顺序：1-18号染色体，MT，X，Y
-chromosomes = [str(i) for i in range(1, 19)] + ["MT", "X", "Y"]
+# Define main function
+def main():
+    """Main function to convert FASTA files to a single text file."""
+    # Get command line arguments
+    args = parse_args()
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
+    
+    # Define chromosome order: chromosomes 1-18, MT, X, Y
+    chromosomes = [str(i) for i in range(1, 19)] + ["MT", "X", "Y"]
 
-# 生成FASTA文件路径列表
-fasta_files = [f"Sus_scrofa.Sscrofa11.1.dna.primary_assembly.{chr}.fa" for chr in chromosomes]
-
-# 设置输出文件路径
-output_file = "/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/fasta_data/pig_genome.txt"
-
-# 打开输出文件，写入模式
-with open(output_file, "w") as out_f:
-    # 遍历每个FASTA文件
-    for fa_file in fasta_files:
-        fa_path = os.path.join(fasta_dir, fa_file)
-        
-        # 检查文件是否存在
-        if not os.path.exists(fa_path):
-            print(f"Warning: {fa_path} does not exist")
-            continue
-        
-        # 解析FASTA文件
-        records = list(SeqIO.parse(fa_path, "fasta"))
-        
-        # 检查记录数量（通常每个FASTA文件对应一个染色体，应只有1个记录）
-        if len(records) > 1:
-            print(f"Warning: {fa_file} has {len(records)} records")
-        
-        # 遍历每个记录
-        for record in records:
-            # 提取序列并转换为大写
-            sequence = str(record.seq).upper()
+    # Generate FASTA file paths list
+    fasta_files = [f"{args.genome_build}.{chr}.fa" for chr in chromosomes]
+    
+    # Open output file in write mode
+    with open(args.output_file, "w") as out_f:
+        # Iterate through each FASTA file
+        for fa_file in fasta_files:
+            fa_path = os.path.join(args.input_dir, fa_file)
             
-            # 使用正则表达式去除非ATCG字符
-            cleaned_sequence = re.sub(r'[^ATCG]', '', sequence)
+            # Check if file exists
+            if not os.path.exists(fa_path):
+                print(f"Warning: {fa_path} does not exist")
+                continue
             
-            # 将清洗后的序列写入输出文件
-            out_f.write(cleaned_sequence)
+            # Parse FASTA file
+            records = list(SeqIO.parse(fa_path, "fasta"))
+            
+            # Check record count (typically each FASTA file corresponds to one chromosome)
+            if len(records) > 1:
+                print(f"Warning: {fa_file} has {len(records)} records")
+            
+            # Process each record
+            for record in records:
+                # Extract sequence and convert to uppercase
+                sequence = str(record.seq).upper()
+                
+                # Use regex to remove non-ATCG characters
+                cleaned_sequence = re.sub(r'[^ATCG]', '', sequence)
+                
+                # Write cleaned sequence to output file
+                out_f.write(cleaned_sequence)
+    
+    print(f"Processing completed. Output file: {args.output_file}")
 
-print(f"Pre_processing completed. Output file: {output_file}")
+# Execute main function when script is run directly
+if __name__ == "__main__":
+    main()
