@@ -40,7 +40,7 @@ from transformers import GPT2TokenizerFast
 dna_tokenizer = GPT2TokenizerFast(tokenizer_object=new_tokenizer)
 dna_tokenizer.save_pretrained("dna_bpe_pig")
 
-# 也可以选择将模型上传到Hugging Face Hub
+# 上传你的模型到Hugging Face Hub
 # dna_tokenizer.push_to_hub("dna_bpe_dict_1g", organization="dnagpt", use_auth_token="hf_*****")  # push to huggingface
 
 tokenizer_new = AutoTokenizer.from_pretrained('dna_bpe_pig')
