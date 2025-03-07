@@ -13,7 +13,7 @@ from transformers import EsmConfig, EsmForMaskedLM
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 torch.cuda.empty_cache()
 print(f"可用 GPU 数量: {torch.cuda.device_count()}")
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  # 修改为具体设备
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")  
 print(f"使用设备: {device}")
 
 # 设置环境变量

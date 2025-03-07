@@ -236,14 +236,14 @@ tokenized_datasets = dataset.map(tokenize_function,
                                 remove_columns=['text'], 
                                 num_proc=15)
 
-# 数据收集器（保持MLM设置）
+# Data collator (maintain MLM settings)
 data_collator = DataCollatorForLanguageModeling(
     tokenizer=tokenizer,
     mlm=True,
     mlm_probability=0.15
 )
 
-# 训练参数配置（优化适配Mamba）
+# Training arguments configuration (optimized for Mamba)
 training_args = TrainingArguments(
     output_dir=args.output_dir,
     per_device_train_batch_size=args.per_device_batch,
@@ -263,7 +263,7 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=2,
 )
 
-# 初始化Trainer（保持与DNAmamba相同接口）
+# Initialize Trainer (maintain same interface as DNAmamba)
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -272,19 +272,19 @@ trainer = Trainer(
     data_collator=data_collator,
 )
 
-# 训练流程（保持不变）
+# Training process (keep unchanged)
 checkpoint_dir = get_last_checkpoint(args.output_dir)
 if checkpoint_dir:
     trainer.train(resume_from_checkpoint=checkpoint_dir)
 else:
     trainer.train()
 
-# 保存最终模型和分词器
+# Save final model and tokenizer
 final_model_path = os.path.join(args.output_dir, "mamba_dna_final")
 trainer.save_model(final_model_path)
 tokenizer.save_pretrained(final_model_path)
 
-# 评估模型
+# Evaluate model
 eval_results = trainer.evaluate()
 print(f"Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 

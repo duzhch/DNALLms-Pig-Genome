@@ -14,11 +14,11 @@ from transformers.trainer_utils import get_last_checkpoint
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 torch.cuda.empty_cache()
-print(f"可用 GPU 数量: {torch.cuda.device_count()}")
+print(f"Number of available GPUs: {torch.cuda.device_count()}")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"使用设备: {device}")
+print(f"Using device: {device}")
 
-# 设置环境变量（保持不变）
+# Set environment variables (keep unchanged)
 result = subprocess.run('bash -c "source /etc/network_turbo && env | grep proxy"', shell=True, capture_output=True, text=True)
 output = result.stdout
 for line in output.splitlines():
@@ -92,41 +92,41 @@ class SentencePieceTokenizer(PreTrainedTokenizer):
         return {"input_ids": tokens if isinstance(text, list) else [tokens]}
 
 
-# 路径和超参数（根据你的参数调整）
+# Paths and hyperparameters (adjust according to your parameters)
 # model_path = '/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/BPE/bpe_sentence/Pig_sen_bpe.model'
 model_path = '/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/BPE/total_bpe_sentence/Pig_sen_bpe.model'  
 # data_path = "/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/fasta_data/window1000_pig_genome.txt"
-#测试代码
+# Test code
 # data_path = "/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/train_ch18.txt"
 data_path = '/work/home/zyqgroup01/duanzhichao/GLM/PIGMODEL/Pig_genome/windowed1000_pig_total.txt'
 config_path = "/work/home/zyqgroup01/duanzhichao/GLM/config.json"
 run_path = "pig_bert_run_v1"
-max_length = 512  # 对齐 max_token_length=512
-batch_size =  1024  # 总 batch size
+max_length = 512  # Align with max_token_length=512
+batch_size = 1024  # Total batch size
 learning_rate = 8e-5
-num_train_epochs = 5  # 直接指定 epoch 数
+num_train_epochs = 5  # Directly specify number of epochs
 warmup_ratio = 0.05
-per_device_batch = 512 
+per_device_batch = 512
 
-# 初始化分词器
+# Initialize tokenizer
 tokenizer = SentencePieceTokenizer(model_path=model_path)
 
-# 加载并更新模型配置
+# Load and update model configuration
 with open(config_path, "r") as f:
     config_dict = json.load(f)
 
 config = BertConfig.from_dict(config_dict)
 config.vocab_size = tokenizer.vocab_size
-config.max_position_embeddings = max_length  # 确保与输入长度一致
+config.max_position_embeddings = max_length  # Ensure consistency with input length
 config.pad_token_id = tokenizer.pad_token_id
 config.bos_token_id = tokenizer.cls_token_id
 config.eos_token_id = tokenizer.eos_token_id
 
-# 根据设备数量计算单卡 batch size
+# Calculate per-device batch size based on number of devices
 num_devices = max(torch.cuda.device_count(), 1)
-print(f"单卡 batch size: {per_device_batch}")
+print(f"Batch size per GPU: {per_device_batch}")
 
-# 加载数据集
+# Load dataset
 raw_dataset = load_dataset('text', data_files=data_path)
 dataset = raw_dataset["train"].train_test_split(test_size=0.1, shuffle=True)
 
@@ -135,37 +135,35 @@ def tokenize_function(examples):
 
 tokenized_datasets = dataset.map(tokenize_function, batched=True, remove_columns=['text'], num_proc=15)
 
-# 数据收集器
+# Data collator
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=0.15)
 
-# 计算 warmup_steps
-total_steps = num_train_epochs * len(tokenized_datasets["train"]) // (per_device_batch *  num_devices)
+# Calculate warmup_steps
+total_steps = num_train_epochs * len(tokenized_datasets["train"]) // (per_device_batch * num_devices)
 warmup_steps = int(total_steps * warmup_ratio)
 
-# 训练参数
+# Training arguments
 training_args = TrainingArguments(
     output_dir=run_path,
     overwrite_output_dir=False,
     num_train_epochs=num_train_epochs,
     per_device_train_batch_size=per_device_batch,
     learning_rate=learning_rate,
-    weight_decay=0.01,  # 对齐 weight_decay=0.01
-    adam_beta1=0.9,      # 对齐 adam_beta1=0.9
-    adam_beta2=0.98,     # 对齐 adam_beta2=0.98
-    adam_epsilon=1e-6,   # 对齐 adam_epsilon=1e-6
+    weight_decay=0.01,  # Align with weight_decay=0.01
+    adam_beta1=0.9,     # Align with adam_beta1=0.9
+    adam_beta2=0.98,    # Align with adam_beta2=0.98
+    adam_epsilon=1e-6,  # Align with adam_epsilon=1e-6
     warmup_steps=warmup_steps,
-    bf16=True,          # 启用 bf16（需 GPU 支持）
+    bf16=True,          # Enable bf16 (requires GPU support)
     logging_dir=f"{run_path}/logs",
     logging_steps=500,
-    # evaluation_strategy="steps",
-    # eval_steps=2000,
     save_steps=2000,
     save_total_limit=2,
     dataloader_num_workers=10,
     lr_scheduler_type="linear",
 )
 
-# 初始化模型
+# Initialize model
 model = BertForMaskedLM(config).to(device)
 
 trainer = Trainer(
@@ -176,19 +174,19 @@ trainer = Trainer(
     data_collator=data_collator,
 )
 
-# 检查点恢复（保持不变）
+# Checkpoint recovery (keep unchanged)
 checkpoint_dir = get_last_checkpoint(run_path)
 if checkpoint_dir is not None:
-    print(f"从检查点 {checkpoint_dir} 恢复训练")
+    print(f"Resuming training from checkpoint {checkpoint_dir}")
     trainer.train(resume_from_checkpoint=checkpoint_dir)
 else:
     if os.path.exists(run_path) and os.listdir(run_path):
-        print(f"警告: {run_path} 存在但没有有效的检查点，将从头开始训练")
+        print(f"Warning: {run_path} exists but has no valid checkpoint, starting training from scratch")
     else:
-        print(f"在 {run_path} 中未找到检查点，从头开始训练")
+        print(f"No checkpoint found in {run_path}, starting training from scratch")
     trainer.train()
 
-# 保存模型
+# Save model
 trainer.save_model("pig_bert2_v1")
 eval_results = trainer.evaluate()
 print(f"Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
