@@ -1,0 +1,39 @@
+# 基础模型配置
+
+# 模型参数
+model:
+  type: "gpt2"  # 可选: gpt2, bert, mamba
+  hidden_size: 768
+  num_layers: 12
+  num_attention_heads: 12
+  max_position_embeddings: 1024
+  vocab_size: 32000  # DNA序列词表大小
+
+# 训练参数
+training:
+  batch_size: 32
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  warmup_steps: 1000
+  max_steps: 100000
+  save_interval: 1000
+  eval_interval: 100
+
+# 数据参数
+data:
+  train_path: "data/train"
+  valid_path: "data/valid"
+  test_path: "data/test"
+  max_seq_length: 1024
+
+# 分布式训练
+distributed:
+  backend: "nccl"
+  world_size: 1
+  local_rank: 0
+
+# 日志和检查点
+logging:
+  wandb_project: "dna-llm"
+  log_interval: 10
+  checkpoint_dir: "checkpoints"
