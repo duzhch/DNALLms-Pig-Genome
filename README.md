@@ -113,35 +113,9 @@ python pig_mamba.py
 - 优势：
   - 相较Transformer内存消耗降低60%
   - 支持百万token级序列处理
-  - 训练速度提升3倍（同参数规模）
+  - 训练速度提升
 
-## 项目结构
 
-```
-DNALLms-Pig-Genome/
-├── configs/               # 模型配置文件
-│   ├── base_model.yml     # 基础模型配置
-│   └── train_config.yml   # 完整训练参数配置
-├── docs/                  # 项目文档
-│   └── technical_notes.md # 技术细节说明
-├── savanna/               # 核心框架代码
-│   ├── __init__.py
-│   ├── distributed.py     # 分布式训练模块
-│   └── utils/             # 工具函数包
-│       ├── data_utils.py  # 数据处理工具
-│       └── logger.py      # 日志记录模块
-├── scripts/               # 实用脚本
-│   ├── data_preprocess.sh # 数据预处理脚本
-│   └── slurm_job.sh       # SLURM作业提交脚本
-├── tests/                 # 单元测试
-│   ├── test_data_loader.py
-│   └── test_tokenizer.py
-├── requirements.txt       # Python依赖库
-├── setup.py               # 项目安装脚本
-├── README.md              # 项目说明文件
-├── LICENSE
-└── .gitignore
-```
 
 ## 未来计划
 
